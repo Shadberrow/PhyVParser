@@ -14,8 +14,22 @@ def _parse_file(filepath):
         line = file.readline()
         while line:
             key, match = _parse_line(line)
-            print(key, match)
+
+            if key == 'input':
+                input = match.group('input')
+                print(input)
+            if key == 'inout':
+                input = match.group('inout')
+                print(input)
+            if key == 'output':
+                input = match.group('output')
+                print(input)
+            if key == 'wire':
+                input = match.group('wire')
+                print(input)
+
             line = file.readline()
+
     return data
 
 rx_dict = {
