@@ -54,3 +54,18 @@ if __name__ == '__main__':
 
     repeated = [item for item, count in collections.Counter(data).items() if count > 1]
     print(repeated)
+
+    # with fileinput.FileInput(filepath, inplace=True, backup='.bak') as file:
+    #     for line in file:
+    #         for x in repeated:
+    #             if x in line:
+    #                 line.replace(x, '**Q')
+
+    # input = open(filepath)
+    # output = open('out', 'w')
+    # for x in repeated:
+    #     for s in input.xreadlines(  ):
+    #         if x in s:
+    #             output.write(s.replace(x, '**Q'))
+    #         else:
+    #             output.write(s)
