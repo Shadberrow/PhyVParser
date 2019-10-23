@@ -7,14 +7,14 @@ inout VDD;
 inout VSS;
 Some lines going on.
 And one more here.
-wire [7:0] cr_address;
+wire [7:0] /*****GENERATED*****cr_address;
 wire [4:0] pcnt;
 
 wire FE_OFN1262_cr_address_3_;
 
 DEL01BWP7T FE_OFC1262_cr_address_3_ (
 .Z(FE_OFN1262_cr_address_3_),
-.I(cr_address[3]),
+.I(/*****GENERATED*****cr_address[3]),
 .VDD(VDD_0),
 .VSS(VSS_0));
 
