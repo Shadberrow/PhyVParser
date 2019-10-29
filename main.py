@@ -1,7 +1,5 @@
 import re
-import collections
 import os, sys, getopt
-import json
 
 # Definition of type:
 #     input = 0 | output = 1 | inout = 2 | wire = 3
