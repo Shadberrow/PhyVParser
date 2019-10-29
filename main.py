@@ -150,4 +150,8 @@ def main(argv):
     _edit_and_save(filepath, modules)
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    if len(sys.argv) == 1:
+        print('test.py -i <inputfile>')
+        sys.exit()
+    else:
+        main(sys.argv[1:])
