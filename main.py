@@ -108,7 +108,7 @@ def _edit_and_save(filepath, modules):
         if module.name != '':
             for name in module.namesToChange:
                 if name.name in s:
-                    new_str = re.sub(r'\b'+name.name+r'\b', '/______GENERATED_________'+name.name , new_str)
+                    new_str = re.sub(r'\b'+name.name+r'\b', 'FCNN'+name.name , new_str)
         output.write(new_str)
 
     input.close()
