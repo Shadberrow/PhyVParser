@@ -1,44 +1,30 @@
 import re
 import collections
-import os, sys
+import os, sys, getopt
 import json
 
+# Definition of type:
+#     input = 0 | output = 1 | inout = 2 | wire = 3
+
+class VerilogName:
+    def __init__(self, name, type):
+        self.name = name
+        self.type = type
+
 class VerilogModule:
+
     def __init__(self):
         self.name = 'default'
-        self.inputs = [];
-        self.outputs = [];
-        self.wires = [];
-        self.inouts = [];
+        self.names = []
+        self.namesToChange = []
 
     def __init__(self, name):
         self.name = name
-        self.inputs = [];
-        self.outputs = [];
-        self.wires = [];
-        self.inouts = [];
+        self.names = []
+        self.namesToChange = []
 
-    def addInput(self, input):
-        self.inputs.append(input)
-
-    def addInout(self, name):
-        self.inouts.append(name)
-
-    def addOutput(self, name):
-        self.outputs.append(name)
-
-    def addWire(self, name):
-        self.wires.append(name)
-
-    def __str__(self):
-        info = {
-            'name': self.name,
-            'inputs': self.inputs,
-            'inouts': self.inouts,
-            'outputs': self.outputs,
-            'wires': self.wires
-        }
-        return json.dumps(info)
+    def addName(self, name):
+        self.names.append(name)
 
 def _get_only_name(text):
     x = re.sub('[\(\[].*?[\)\]]', '', text)
@@ -87,21 +73,45 @@ def _parse_file(filepath):
                 name = _get_only_name(match.group(key))
                 newMod = VerilogModule(name)
                 modules.append(newMod)
-            if key == 'input':
+            elif key == 'input':
                 name = _get_only_name(match.group(key))
-                newMod.addInput(name);
-            if key == 'inout':
+                newMod.addName(VerilogName(name, 0))
+            elif key == 'inout':
                 name = _get_only_name(match.group(key))
-                newMod.addInout(name);
-            if key == 'output':
+                newMod.addName(VerilogName(name, 2))
+            elif key == 'output':
                 name = _get_only_name(match.group(key))
-                newMod.addOutput(name);
-            if key == 'wire':
+                newMod.addName(VerilogName(name, 1))
+            elif key == 'wire':
                 name = _get_only_name(match.group(key))
-                newMod.addWire(name);
+                newMod.addName(VerilogName(name, 3))
 
             line = file.readline()
     return modules
+
+def _find_repeated_names(module):
+    all_names = module.names
+
+    for idx, name in enumerate(all_names):
+        for subname in all_names[idx+1: None]:
+            if name.name.lower() == subname.name.lower() and name.name != subname.name:
+                # print('______________________ match ______________________', name, subname)
+                if name.type == 0 and subname.type == 0:
+                    print('______________________ two inputs has the same lowercased name (' + name.name + ' & ' + subname.name + ') ______________________')
+                elif name.type == 1 and subname.type == 1:
+                    print('______________________ two outputs has the same lowercased name (' + name.name + ' & ' + subname.name + ') ______________________')
+                elif name.type == 2 and subname.type == 2:
+                    print('______________________ two inouts has the same lowercased name (' + name.name + ' & ' + subname.name + ') ______________________')
+                elif name.type == 3 and subname.type == 3:
+                    # print('______________________ two wires has the same lowercased name (' + name.name + ' & ' + subname.name + ') ______________________')
+                    module.namesToChange.append(subname)
+                elif name.type == 3:
+                    # print('______________________ need to change name (' + name.name + ') ______________________')
+                    module.namesToChange.append(name)
+                elif subname.type == 3:
+                    # print('______________________ need to change name (' + subname.name + ') ______________________')
+                    module.namesToChange.append(subname)
+
 
 rx_dict = {
     'input'  : re.compile(r'input(?P<input>.*;)'),
@@ -111,43 +121,56 @@ rx_dict = {
     'module' : re.compile(r'\bmodule\b(?P<module>.*\w)')
 }
 
+def main(argv):
+   inputfile = ''
+   try:
+      opts, args = getopt.getopt(argv,"hi:",["ifile="])
+   except getopt.GetoptError:
+      print 'test.py -i <inputfile>'
+      sys.exit(2)
+   for opt, arg in opts:
+      if opt == '-h':
+         print 'test.py -i <inputfile>'
+         sys.exit()
+      elif opt in ("-i", "--ifile"):
+         inputfile = arg
+
+   modules = []
+
+   filepath = 'tx_handler_bad.phy.v'
+
+   print('Getting key names ...')
+   modules = _parse_file(filepath);
+
+   print('Looking for repeated one ...')
+   for mod in modules:
+       _find_repeated_names(mod)
+
+   print('Modifying modules ...')
+   input = open(filepath)
+   output = open(filepath+'_fixed', 'w')
+
+   modidx = -1;
+   module = VerilogModule('');
+
+   for s in input.readlines():
+       new_str = s;
+
+       match = re.compile(r'\bmodule\b', flags=re.I | re.X)
+       res = match.search(s)
+       if res:
+           if res.group() == 'module':
+               modidx += 1
+               module = modules[modidx]
+
+       if module.name != '':
+           for name in module.namesToChange:
+               if name.name in s:
+                   new_str = re.sub(r'\b'+name.name+r'\b', '/______GENERATED_________'+name.name , new_str)
+       output.write(new_str)
+
+   input.close()
+   output.close()
+
 if __name__ == '__main__':
-    modules = []
-
-    # filepath = 'tx_handler_bad.phy.v'
-    # filepath = 'sample01.v'
-    filepath = 'test_multiple_modules.phy.v'
-    modules = _parse_file(filepath);
-
-    for mod in modules:
-        print(mod)
-
-
-
-    # data = map(lambda x: x.lower(), data)
-    # repeated = [item for item, count in collections.Counter(data).items() if count > 1]
-    # print('List of repeated names:')
-    # print(repeated)
-
-    # found_modules = _find_modules_in(filepath)
-    #
-    # for module in found_modules:
-    #     print(module)
-    #     # for line in module:
-    #         # print(_find_key_names(line))
-
-    # res = re.compile(r'\bmodule\b | \bendmodule\b', flags=re.I | re.X)
-    # print(res.search('asdfdsf A ('))
-
-    # input = open(filepath)
-    # output = open(filepath+'_fixed', 'w')
-    #
-    # for s in input.xreadlines():
-    #     new_str = s;
-    #     for x in repeated:
-    #         if x in new_str:
-    #             new_str = re.sub(r'\b'+x+r'\b', '/______GENERATED_________'+x , new_str)
-    #     output.write(new_str)
-    #
-    # input.close()
-    # output.close()
+    main(sys.argv[1:])
