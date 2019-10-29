@@ -12,7 +12,6 @@ class VerilogName:
         self.type = type
 
 class VerilogModule:
-
     def __init__(self):
         self.name = 'default'
         self.names = []
@@ -38,28 +37,6 @@ def _parse_line(line):
         if match:
             return key, match
     return None, None
-
-def _find_modules_in(filepath):
-    modules = []; module = '';
-    do_read_module = False;
-    with open(filepath, 'r') as file:
-        line = file.readline()
-        while line:
-            if do_read_module:
-                module += line
-
-            match = re.compile(r'\bmodule\b | \bendmodule\b', flags=re.I | re.X)
-            res = match.search(line)
-            if res:
-                if res.group() == 'module':
-                    do_read_module = True
-                    module += line
-                elif res.group() == 'endmodule':
-                    do_read_module = False
-                    modules.append(module)
-                    module = ''
-            line = file.readline()
-    return modules
 
 def _parse_file(filepath):
     name = ''; newMod = VerilogModule(''); modules = [];
@@ -112,6 +89,33 @@ def _find_repeated_names(module):
                     # print('______________________ need to change name (' + subname.name + ') ______________________')
                     module.namesToChange.append(subname)
 
+def _edit_and_save(filepath, modules):
+    outputFilepath = 'FIXED_'+filepath
+    input = open(filepath)
+    output = open(outputFilepath, 'w')
+
+    modidx = -1;
+    module = VerilogModule('');
+
+    for s in input.readlines():
+        new_str = s;
+
+        match = re.compile(r'\bmodule\b', flags=re.I | re.X)
+        res = match.search(s)
+        if res:
+            if res.group() == 'module':
+                modidx += 1
+                module = modules[modidx]
+
+        if module.name != '':
+            for name in module.namesToChange:
+                if name.name in s:
+                    new_str = re.sub(r'\b'+name.name+r'\b', '/______GENERATED_________'+name.name , new_str)
+        output.write(new_str)
+
+    input.close()
+    output.close()
+    print('Result saved in '+outputFilepath)
 
 rx_dict = {
     'input'  : re.compile(r'input(?P<input>.*;)'),
@@ -122,55 +126,30 @@ rx_dict = {
 }
 
 def main(argv):
-   inputfile = ''
-   try:
-      opts, args = getopt.getopt(argv,"hi:",["ifile="])
-   except getopt.GetoptError:
-      print 'test.py -i <inputfile>'
-      sys.exit(2)
-   for opt, arg in opts:
-      if opt == '-h':
-         print 'test.py -i <inputfile>'
-         sys.exit()
-      elif opt in ("-i", "--ifile"):
-         inputfile = arg
+    inputfile = ''
+    try:
+        opts, args = getopt.getopt(argv,"hi:",["ifile="])
+    except getopt.GetoptError:
+        print('test.py -i <inputfile>')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print('test.py -i <inputfile>')
+            sys.exit()
+        elif opt in ("-i", "--ifile"):
+            inputfile = arg
+            if inputfile == '':
+                print('test.py -i <inputfile>')
+                sys.exit()
 
-   modules = []
-
-   filepath = 'tx_handler_bad.phy.v'
-
-   print('Getting key names ...')
-   modules = _parse_file(filepath);
-
-   print('Looking for repeated one ...')
-   for mod in modules:
-       _find_repeated_names(mod)
-
-   print('Modifying modules ...')
-   input = open(filepath)
-   output = open(filepath+'_fixed', 'w')
-
-   modidx = -1;
-   module = VerilogModule('');
-
-   for s in input.readlines():
-       new_str = s;
-
-       match = re.compile(r'\bmodule\b', flags=re.I | re.X)
-       res = match.search(s)
-       if res:
-           if res.group() == 'module':
-               modidx += 1
-               module = modules[modidx]
-
-       if module.name != '':
-           for name in module.namesToChange:
-               if name.name in s:
-                   new_str = re.sub(r'\b'+name.name+r'\b', '/______GENERATED_________'+name.name , new_str)
-       output.write(new_str)
-
-   input.close()
-   output.close()
+    filepath = inputfile
+    print('Getting key names ...')
+    modules = _parse_file(filepath);
+    print('Looking for repeated one ...')
+    for mod in modules:
+        _find_repeated_names(mod)
+    print('Modifying modules ...')
+    _edit_and_save(filepath, modules)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
