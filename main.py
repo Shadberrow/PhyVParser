@@ -141,13 +141,23 @@ def main(argv):
                 sys.exit()
 
     filepath = inputfile
+
     print('Getting key names ...')
     modules = _parse_file(filepath);
+
     print('Looking for repeated one ...')
+    hasRepeatedItems = False
     for mod in modules:
         _find_repeated_names(mod)
-    print('Modifying modules ...')
-    _edit_and_save(filepath, modules)
+        if len(mod.namesToChange) > 0:
+            hasRepeatedItems = True
+
+    if hasRepeatedItems:
+        print('Modifying modules ...')
+        _edit_and_save(filepath, modules)
+    else:
+        print('File doesnt have repeated net names.')
+        sys.exit(0)
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
