@@ -75,6 +75,7 @@ module B (
   wire n164;
   wire N300;
   wire n300;
+  wire n101;
 
   DEL01BWP7T FE_OFC1487_n164 (
  .Z(N300),
